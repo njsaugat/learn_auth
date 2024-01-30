@@ -44,8 +44,9 @@ class RegisterSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     
     class Meta:
+        # fields='__all__'
         model=CustomUser
-        fields='__all__'
+        exclude=['password']
         
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -63,7 +64,13 @@ class UserLoginSerializer(serializers.Serializer):
     email=serializers.CharField()
     password=serializers.CharField(write_only=True,required=True,validators=[validate_password])
 
+    # access_token=serializers.SerializerMethodField()
+    # refresh_token=serializers.SerializerMethodField()
 
+
+    # def get_access_token(self,obj):
+    #     refresh=RefreshToken.for_user(obj)
+        
     def validate(self,data):
         email=data.get('email')
         password=data.get('password')
@@ -82,7 +89,18 @@ class UserLoginSerializer(serializers.Serializer):
         refresh=RefreshToken.for_user(user)
 
         # {'refresh':str(refresh),'access':str(refresh.access_token)}
-        data['refresh']=str(refresh)
-        data['access']=str(refresh.access_token)
-        
-        return data
+        user_data=UserSerializer(user).data
+        return {
+                'user': user,
+                'refresh_token': str(refresh),
+                'access_token': str(refresh.access_token)
+            }
+
+        # TODO try to implement the same using the SerializerMethodField() with the get prefix
+
+    def to_representation(self,obj):
+        return{
+            'user':UserSerializer(obj['user']).data,
+            'refresh_token': obj['refresh_token'],
+            'access_token': obj['access_token']
+        }

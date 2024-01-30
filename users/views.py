@@ -18,7 +18,7 @@ class LoginView(APIView):
             return Response(user_serializer.errors,status=status.HTTP_400_BAD_REQUEST)
         
         # refresh=RefreshToken.for_user(user)
-        return Response(user_serializer,status=status.HTTP_200_OK)
+        return Response(user_serializer.data,status=status.HTTP_200_OK)
 
 
 
