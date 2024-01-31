@@ -8,6 +8,12 @@ from django.contrib.auth import authenticate
 
 from rest_framework_simplejwt.tokens import RefreshToken
 
+class UserSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model=CustomUser
+        exclude=['password']
+        
 class RegisterSerializer(serializers.ModelSerializer):
     password=serializers.CharField(write_only=True,required=True,validators=[validate_password])
     
@@ -33,21 +39,15 @@ class RegisterSerializer(serializers.ModelSerializer):
             username=validated_data['username'],
             email=validated_data['email'],
             bio=validated_data['bio'],
-            cover_photo=validated_data['cover_photo']
+            cover_photo=validated_data['cover_photo'] if 'cover_photo' in validated_data else None
         )
         # set the hashed password
         user.set_password(validated_data['password'])
         user.save()
         
-        return user
+        return UserSerializer(user).data
     
-class UserSerializer(serializers.ModelSerializer):
-    
-    class Meta:
-        # fields='__all__'
-        model=CustomUser
-        exclude=['password']
-        
+
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
@@ -64,12 +64,14 @@ class UserLoginSerializer(serializers.Serializer):
     email=serializers.CharField()
     password=serializers.CharField(write_only=True,required=True,validators=[validate_password])
 
-    # access_token=serializers.SerializerMethodField()
-    # refresh_token=serializers.SerializerMethodField()
+    access_token=serializers.SerializerMethodField()
+    refresh_token=serializers.SerializerMethodField()
 
 
-    # def get_access_token(self,obj):
-    #     refresh=RefreshToken.for_user(obj)
+    def get_refresh_token(self,refresh):
+        return str(refresh)
+    def get_access_token(self,refresh):
+        return str(refresh.access_token)
         
     def validate(self,data):
         email=data.get('email')
@@ -88,13 +90,11 @@ class UserLoginSerializer(serializers.Serializer):
         
         refresh=RefreshToken.for_user(user)
 
-        # {'refresh':str(refresh),'access':str(refresh.access_token)}
-        user_data=UserSerializer(user).data
-        return {
-                'user': user,
-                'refresh_token': str(refresh),
-                'access_token': str(refresh.access_token)
-            }
+        validated_data={"user":user}
+        
+        validated_data['refresh_token']=self.get_refresh_token(refresh)
+        validated_data['access_token']=self.get_access_token(refresh)
+        return validated_data
 
         # TODO try to implement the same using the SerializerMethodField() with the get prefix
 

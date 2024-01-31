@@ -8,3 +8,6 @@ class TaskView(viewsets.ModelViewSet):
     queryset=Task.objects.all()
     serializer_class=TaskSerializer
     
+
+        
+        
